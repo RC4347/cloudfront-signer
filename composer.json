@@ -1,0 +1,16 @@
+{
+    "name": "rc4347/cloudfront-signer",
+    "minimum-stability": "dev",
+    "type": "package",
+    "require": {
+        "php": ">=7.4.0",
+        "yiisoft/yii2": "^2.0.13",
+        "aws/aws-sdk-php": "^3.246",
+        "league/flysystem-aws-s3-v3": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "RC4347\\CloudFrontSigner\\": "src"
+        }
+    }
+}
