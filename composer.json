@@ -4,9 +4,7 @@
     "type": "package",
     "require": {
         "php": ">=7.4.0",
-        "yiisoft/yii2": "^2.0.13",
-        "aws/aws-sdk-php": "^3.246",
-        "league/flysystem-aws-s3-v3": "*"
+        "aws/aws-sdk-php": "^3.246"
     },
     "autoload": {
         "psr-4": {

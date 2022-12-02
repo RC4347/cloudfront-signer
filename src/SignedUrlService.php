@@ -4,47 +4,54 @@ namespace RC4347\CloudFrontSigner;
 
 use Aws\CloudFront\CloudFrontClient;
 use Aws\Exception\AwsException;
-use Yii;
-use yii\base\Model;
-use yii\web\NotFoundHttpException;
+use RC4347\CloudFrontSigner\credentials\AccessConfig;
+use RC4347\CloudFrontSigner\credentials\ClientConfig;
+use RC4347\CloudFrontSigner\credentials\ExpireConfig;
 
-class SignedUrlService extends Model
+class SignedUrlService
 {
-    const DEFAULT_DURATION = 300;
-    public string $resourceKey;
-    private int $expires;
+    public ExpireConfig $config;
+    public ClientConfig $clientConfig;
+    public AccessConfig $accessConfig;
 
     /**
-     * @throws NotFoundHttpException
+     * @param ExpireConfig $config
+     * @param ClientConfig $clientConfig
+     * @param AccessConfig $accessConfig
      */
-    public function __construct($config = [])
+    public function __construct(ExpireConfig $config, ClientConfig $clientConfig, AccessConfig $accessConfig)
     {
-        parent::__construct($config);
-        $this->expires = time() + self::DEFAULT_DURATION;
-        if (!isset(Yii::$app->extensions['s3']['privateKey'])) {
-            throw new NotFoundHttpException("Private Key not found in config extension");
-        }
+        $this->config = $config;
+        $this->clientConfig = $clientConfig;
+        $this->accessConfig = $accessConfig;
     }
 
-    public function run()
+    /**
+     * @return string
+     */
+    public function run(): string
     {
         $cloudFrontClient = new CloudFrontClient([
-            'profile' => 'default',
-            'version' => 'latest',
-            'region' => env('S3_REGION')
+            'profile' => $this->clientConfig->profile ?? 'default',
+            'version' => $this->clientConfig->version ?? 'latest',
+            'region' => $this->clientConfig->region
         ]);
 
         return $this->getSignedUrl($cloudFrontClient);
     }
 
-    protected function getSignedUrl($cloudFrontClient)
+    /**
+     * @param CloudFrontClient $cloudFrontClient
+     * @return string
+     */
+    protected function getSignedUrl(CloudFrontClient $cloudFrontClient): string
     {
         try {
             return $cloudFrontClient->getSignedUrl([
-                'url' => $this->resourceKey,
-                'expires' => $this->expires,
-                'private_key' => Yii::$app->extensions['s3']['privateKey'],
-                'key_pair_id' => env('S3_KEY_PAIR_ID')
+                'url' => $this->config->resourceKey,
+                'expires' => $this->config->expires,
+                'private_key' => $this->accessConfig->privateKey,
+                'key_pair_id' => $this->accessConfig->keyPairId
             ]);
 
         } catch (AwsException $e) {

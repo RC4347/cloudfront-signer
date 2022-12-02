@@ -2,74 +2,78 @@
 
 namespace RC4347\CloudFrontSigner;
 
-use Yii;
-use yii\base\Model;
 use Aws\CloudFront\CloudFrontClient;
 use Aws\Exception\AwsException;
-use yii\web\NotFoundHttpException;
+use RC4347\CloudFrontSigner\credentials\AccessConfig;
+use RC4347\CloudFrontSigner\credentials\ClientConfig;
+use RC4347\CloudFrontSigner\credentials\ExpireConfig;
 
-class SignedCookieService extends Model
+class SignedCookieService
 {
-    const DEFAULT_DURATION = 300;
-    public string $resourceKey;
-    private int $expires;
-    private string $url;
+
+    public ?string $policy;
+
+    public ClientConfig $clientConfig;
+    public AccessConfig $accessConfig;
+    public ExpireConfig $config;
 
     /**
-     * @throws NotFoundHttpException
+     * @param string|null $policy
+     * @param ClientConfig $clientConfig
+     * @param AccessConfig $accessConfig
+     * @param ExpireConfig $config
      */
-    public function __construct($config = [])
+    public function __construct(ClientConfig $clientConfig, AccessConfig $accessConfig, ExpireConfig $config, ?string $policy = null)
     {
-        parent::__construct($config);
-        $this->expires = time() + self::DEFAULT_DURATION;
-        if (!isset(Yii::$app->extensions['s3']['privateKey'])) {
-            throw new NotFoundHttpException("Private Key not found in config extension");
-        }
+        $this->policy = $policy;
+        $this->clientConfig = $clientConfig;
+        $this->accessConfig = $accessConfig;
+        $this->config = $config;
     }
 
+    /**
+     * @return array|string
+     */
     public function run()
     {
         $cloudFrontClient = new CloudFrontClient([
-            'profile' => 'default',
-            'version' => 'latest',
-            'region' => env('S3_REGION')
+            'profile' => $this->clientConfig->profile ?? 'default',
+            'version' => $this->clientConfig->version ?? 'latest',
+            'region' => $this->clientConfig->region
         ]);
 
         return $this->getSignedCookie($cloudFrontClient);
     }
 
-    protected function getSignedCookie($cloudFrontClient)
+    /**
+     * @param CloudFrontClient $cloudFrontClient
+     * @return array|string
+     */
+    protected function getSignedCookie(CloudFrontClient $cloudFrontClient)
     {
-        $this->url = $this->generateUrl($this->resourceKey);
-
         try {
             return $cloudFrontClient->getSignedCookie([
-                'policy' => $this->generatePolicy(),
-                'private_key' => Yii::$app->extensions['s3']['privateKey'],
-                'key_pair_id' => env('S3_KEY_PAIR_ID')
+                'policy' => $this->policy ?? $this->defaultPolicy(),
+                'private_key' => $this->accessConfig->privateKey,
+                'key_pair_id' => $this->accessConfig->keyPairId
             ]);
         } catch (AwsException $e) {
             return 'Error : ' . $e->getAwsErrorMessage();
         }
     }
 
-    protected function generateUrl($resourceKey)
-    {
-        $splited = explode('/',$resourceKey);
-        $removeKey = count($splited) - 1;
-        unset($splited[$removeKey]);
-        return implode('/', $splited) . '/*';
-    }
-
-    protected function generatePolicy()
+    /**
+     * @return string
+     */
+    protected function defaultPolicy(): string
     {
         return <<<POLICY
         {
             "Statement": [
                 {
-                    "Resource": "{$this->url}",
+                    "Resource": "{$this->config->resourceKey}",
                     "Condition": {
-                        "DateLessThan": {"AWS:EpochTime": {$this->expires}}
+                        "DateLessThan": {"AWS:EpochTime": {$this->config->expires}}
                     }
                 }
             ]
