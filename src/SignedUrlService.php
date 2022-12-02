@@ -4,39 +4,16 @@ namespace RC4347\CloudFrontSigner;
 
 use Aws\CloudFront\CloudFrontClient;
 use Aws\Exception\AwsException;
-use RC4347\CloudFrontSigner\credentials\AccessConfig;
-use RC4347\CloudFrontSigner\credentials\ClientConfig;
-use RC4347\CloudFrontSigner\credentials\ExpireConfig;
+use RC4347\CloudFrontSigner\base\BaseService;
 
-class SignedUrlService
+class SignedUrlService extends BaseService
 {
-    public ExpireConfig $config;
-    public ClientConfig $clientConfig;
-    public AccessConfig $accessConfig;
-
-    /**
-     * @param ExpireConfig $config
-     * @param ClientConfig $clientConfig
-     * @param AccessConfig $accessConfig
-     */
-    public function __construct(ExpireConfig $config, ClientConfig $clientConfig, AccessConfig $accessConfig)
-    {
-        $this->config = $config;
-        $this->clientConfig = $clientConfig;
-        $this->accessConfig = $accessConfig;
-    }
-
     /**
      * @return string
      */
     public function run(): string
     {
-        $cloudFrontClient = new CloudFrontClient([
-            'profile' => $this->clientConfig->profile ?? 'default',
-            'version' => $this->clientConfig->version ?? 'latest',
-            'region' => $this->clientConfig->region
-        ]);
-
+        $cloudFrontClient = $this->getClient();
         return $this->getSignedUrl($cloudFrontClient);
     }
 

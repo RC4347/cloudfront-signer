@@ -4,31 +4,20 @@ namespace RC4347\CloudFrontSigner;
 
 use Aws\CloudFront\CloudFrontClient;
 use Aws\Exception\AwsException;
+use RC4347\CloudFrontSigner\base\BaseService;
 use RC4347\CloudFrontSigner\credentials\AccessConfig;
 use RC4347\CloudFrontSigner\credentials\ClientConfig;
 use RC4347\CloudFrontSigner\credentials\ExpireConfig;
 
-class SignedCookieService
+class SignedCookieService extends BaseService
 {
 
     public ?string $policy;
 
-    public ClientConfig $clientConfig;
-    public AccessConfig $accessConfig;
-    public ExpireConfig $config;
-
-    /**
-     * @param string|null $policy
-     * @param ClientConfig $clientConfig
-     * @param AccessConfig $accessConfig
-     * @param ExpireConfig $config
-     */
-    public function __construct(ClientConfig $clientConfig, AccessConfig $accessConfig, ExpireConfig $config, ?string $policy = null)
+    public function __construct(ExpireConfig $config, ClientConfig $clientConfig, AccessConfig $accessConfig, ?string $policy = null)
     {
+        parent::__construct($config, $clientConfig, $accessConfig);
         $this->policy = $policy;
-        $this->clientConfig = $clientConfig;
-        $this->accessConfig = $accessConfig;
-        $this->config = $config;
     }
 
     /**
@@ -36,12 +25,7 @@ class SignedCookieService
      */
     public function run()
     {
-        $cloudFrontClient = new CloudFrontClient([
-            'profile' => $this->clientConfig->profile ?? 'default',
-            'version' => $this->clientConfig->version ?? 'latest',
-            'region' => $this->clientConfig->region
-        ]);
-
+        $cloudFrontClient = $this->getClient();
         return $this->getSignedCookie($cloudFrontClient);
     }
 
