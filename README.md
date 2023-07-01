@@ -21,7 +21,7 @@ The PHP Service can be installed via [Composer](http://getcomposer.org) by requi
 ```json
 {
     "require": {
-        "rc4347/cloudfront-signer": "^0.0.2"
+        "rc4347/cloudfront-signer": "^0.0.4"
     }
 }
 ```
